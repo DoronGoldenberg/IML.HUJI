@@ -21,6 +21,61 @@ class PolynomialFitting(LinearRegression):
         super().__init__(False)
         self.k_ = k
 
+    def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
+        """
+        Fit Least Squares model to polynomial transformed samples
+
+        Parameters
+        ----------
+        X : ndarray of shape (n_samples, n_features)
+            Input data to fit an estimator for
+
+        y : ndarray of shape (n_samples, )
+            Responses of input data to fit to
+        """
+        if X.ndim == 1:
+            X = self.__transform(X)
+        super()._fit(X, y)
+
+    def _predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Predict responses for given samples using fitted estimator
+
+        Parameters
+        ----------
+        X : ndarray of shape (n_samples, n_features)
+            Input data to predict responses for
+
+        Returns
+        -------
+        responses : ndarray of shape (n_samples, )
+            Predicted responses of given samples
+        """
+        if X.ndim == 1:
+            X = self.__transform(X)
+        return super()._predict(X)
+
+    def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
+        """
+        Evaluate performance under MSE loss function
+
+        Parameters
+        ----------
+        X : ndarray of shape (n_samples, n_features)
+            Test samples
+
+        y : ndarray of shape (n_samples, )
+            True labels of test samples
+
+        Returns
+        -------
+        loss : float
+            Performance under MSE loss function
+        """
+        if X.ndim == 1:
+            X = self.__transform(X)
+        return super()._loss(X, y)
+
     def __transform(self, X: np.ndarray) -> np.ndarray:
         """
         Transform given input according to the univariate polynomial transformation
