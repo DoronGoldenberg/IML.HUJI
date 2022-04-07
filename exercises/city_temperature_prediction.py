@@ -27,6 +27,7 @@ def load_data(filename: str) -> pd.DataFrame:
     # lowest recorded temperature in Israel, Jordan, South Africa and The Netherlands are around
     # -14, -16, -20, -27 respectivly.
     df['DayOfYear'] = df['Date'].dt.day_of_year
+    df['TempNormal'] = (df['Temp']-df['Temp'].mean())/ df['Temp'].std()
     return df
 
 
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     # will probbly work ok for countries in the same latatuid.
 
     # Question 4 - Fitting model for different values of `k`
-    train_X, train_y, test_X, test_y = split_train_test(IL['DayOfYear'], IL['Temp'], train_proportion=0.75)
+    train_X, train_y, test_X, test_y = split_train_test(IL['DayOfYear'], IL['TempNormal'], train_proportion=0.75)
     loss_df = []
     for k in np.arange(1, 11):
         module = PolynomialFitting(k)
@@ -62,19 +63,20 @@ if __name__ == '__main__':
         loss_df.append([k, loss])
     loss_df = pd.DataFrame.from_records(loss_df, columns=["k", "loss"])
     px.bar(loss_df, x='k', y='loss', title='Test Error Value as Function of the polynom degree k').show()
-    print(loss_df)
+    [print('degree {}: {:.2f}'.format(row['k'], row['loss'])) for _, row in loss_df.iterrows()]
 
     # Question 5 - Evaluating fitted model on different countries
-    module = PolynomialFitting(2)
-    module.fit(IL['DayOfYear'], IL['Temp'])
-    # tmp = IL[['DayOfYear', 'Temp']].copy()
-    # tmp['pred'] = module.predict(IL['DayOfYear'])
-    # tmp = tmp.sort_values('DayOfYear')
-    # px.line(tmp, x='DayOfYear', y=['Temp', 'pred'], title='Module Daily Temperature Prediction').show()
+    module = PolynomialFitting(3)
+    module.fit(IL['DayOfYear'], IL['TempNormal'])
+
+    tmp = IL[['DayOfYear', 'TempNormal']].copy()
+    tmp['pred'] = module.predict(IL['DayOfYear'])
+    tmp = tmp.sort_values('DayOfYear')
+    px.line(tmp, x='DayOfYear', y=['TempNormal', 'pred'], title='Module Daily Temperature Prediction').show()
 
     loss_df = []
     for country, df_c in df.groupby(['Country']):
-        loss = module.loss(df_c['DayOfYear'].to_numpy(), df_c['Temp'].to_numpy())
+        loss = module.loss(df_c['DayOfYear'].to_numpy(), df_c['TempNormal'].to_numpy())
         loss_df.append([country, loss])
     loss_df = pd.DataFrame.from_records(loss_df, columns=["Country", "loss"])
     px.bar(loss_df, x='Country', y='loss', title='Test Error Value as Function of the Country').show()
