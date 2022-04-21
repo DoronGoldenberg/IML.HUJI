@@ -85,28 +85,50 @@ def compare_gaussian_classifiers():
     """
     for f in ["gaussian1.npy", "gaussian2.npy"]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(f)
 
         # Fit models and predict over training set
-        raise NotImplementedError()
+        models = [GaussianNaiveBayes(), LDA()]
+        model_names = ["Gaussian Naive Bayes", "LDA"]
+        y_pred = [m.fit_predict(X, y) for m in models]
 
         # Plot a figure with two suplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
         # on the right. Plot title should specify dataset used and subplot titles should specify algorithm and accuracy
         # Create subplots
         from IMLearn.metrics import accuracy
-        raise NotImplementedError()
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[rf"$\textbf{{{n}}} (accuracy={{{accuracy(y, y_hat)}}})$"
+                                                            for n, y_hat in zip(model_names, y_pred)],
+                            horizontal_spacing=0.01)
+        fig.update_layout(title=rf"$\textbf{{Classifiers Predictions Of Models - {f} Dataset}}$",
+                          margin=dict(t=100))
 
         # Add traces for data-points setting symbols and colors
-        raise NotImplementedError()
+        symbols = np.array(["circle", "square", "triangle-up"])
+        for i, y_hat in enumerate(y_pred):
+            fig.add_traces([go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers", showlegend=False,
+                                       marker=dict(color=y_hat, symbol=symbols[y], colorscale=[custom[0], custom[-1]],
+                                                   line=dict(color="black", width=1)))],
+                           rows=1, cols=i + 1)
 
         # Add `X` dots specifying fitted Gaussians' means
-        raise NotImplementedError()
+        for i, m in enumerate(models):
+            fig.add_traces([go.Scatter(x=m.mu_[:, 0], y=m.mu_[:, 1], mode="markers", showlegend=False,
+                                       marker=dict(color="black", symbol="x", line=dict(color="black", width=1)))],
+                           rows=1, cols=i + 1)
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        raise NotImplementedError()
+        fig.add_traces([get_ellipse(models[0].mu_[k, :],
+                                    np.array([[models[0].vars_[k, 0], 0],
+                                              [0, models[0].vars_[k, 1]]]))
+                        for k in range(models[0].classes_.size)],
+                       rows=1, cols=1)
+        fig.add_traces([get_ellipse(models[1].mu_[k, :], models[1].cov_)
+                        for k in range(models[1].classes_.size)],
+                       rows=1, cols=2)
+        fig.show()
 
 
 if __name__ == '__main__':
     np.random.seed(0)
     run_perceptron()
-    # compare_gaussian_classifiers()
+    compare_gaussian_classifiers()
