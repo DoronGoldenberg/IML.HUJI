@@ -46,12 +46,12 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        self.classes_, inverse, self.pi_ = np.unique(y, return_inverse=True, return_counts=True)
+        self.classes_, inverse, n = np.unique(y, return_inverse=True, return_counts=True)
         encoded = np.zeros((self.classes_.size, inverse.size))
         encoded[inverse, np.arange(inverse.size)] = 1
-        self.mu_ = encoded @ X / np.c_[self.pi_, self.pi_]
-        self.pi_ = self.pi_ / y.size
-        self.cov_ = (X - self.mu_[y]).T @ (X - self.mu_[y]) / y.size
+        self.mu_ = ((encoded @ X).T / n).T
+        self.pi_ = n / inverse.size
+        self.cov_ = (X - self.mu_[inverse]).T @ (X - self.mu_[inverse]) / y.size
         self._cov_inv = inv(self.cov_)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
