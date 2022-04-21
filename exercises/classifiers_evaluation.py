@@ -1,3 +1,5 @@
+import numpy as np
+
 from IMLearn.learners.classifiers import Perceptron, LDA, GaussianNaiveBayes
 from typing import Tuple
 from utils import *
@@ -38,14 +40,18 @@ def run_perceptron():
     """
     for n, f in [("Linearly Separable", "linearly_separable.npy"), ("Linearly Inseparable", "linearly_inseparable.npy")]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(f)
 
         # Fit Perceptron and record loss in each fit iteration
         losses = []
-        raise NotImplementedError()
+        Perceptron(callback=lambda per, x_i, y_i: losses.append(per._loss(X, y))).fit(X, y)
 
         # Plot figure of loss as function of fitting iteration
-        raise NotImplementedError()
+        go.Figure([go.Scatter(x=np.arange(len(losses)), y=losses, mode='markers+lines', name=r'$loss$')],
+                  layout=go.Layout(
+                      title=rf"$\textbf{{Module Loss as Function of Iteration Number ({n})}}$",
+                      xaxis_title="$\\text{number of iterations}$",
+                      yaxis_title="r$loss$")).show()
 
 
 def get_ellipse(mu: np.ndarray, cov: np.ndarray):
@@ -103,4 +109,4 @@ def compare_gaussian_classifiers():
 if __name__ == '__main__':
     np.random.seed(0)
     run_perceptron()
-    compare_gaussian_classifiers()
+    # compare_gaussian_classifiers()
