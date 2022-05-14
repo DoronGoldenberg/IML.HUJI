@@ -58,11 +58,10 @@ class AdaBoost(BaseEstimator):
             self.models_.append(module)
             y_hat = module.predict(X)
             e_t = self.D_.reshape((1, -1)) @ (y_hat != y)
-            w_t = np.log((1 - e_t) / e_t) / 2
+            w_t = np.log((1 - e_t[0]) / e_t[0]) / 2
             self.weights_.append(w_t)
             self.D_ = self.D_ * np.exp(- y * y_hat * w_t)
             self.D_ = self.D_ / np.sum(self.D_)
-        raise NotImplementedError()
 
     def _predict(self, X):
         """
