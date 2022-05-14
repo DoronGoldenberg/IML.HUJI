@@ -39,7 +39,12 @@ class DecisionStump(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        m, n = X.shape
+        T = X.reshape((m, 1, n))
+        M = np.sum((np.swapaxes(2 * (X - T >= 0) - 1, 1, 2) * y + 1) / 2, axis=2)
+        threshold_index, self.j_ = np.unravel_index(np.argmax(np.maximum(M, m - M)), M.shape)
+        self.threshold_ = T[threshold_index, 0, self.j_]
+        self.sign_ = 1 if 2 * M[threshold_index, self.j_] >= m else -1
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -63,7 +68,7 @@ class DecisionStump(BaseEstimator):
         Feature values strictly below threshold are predicted as `-sign` whereas values which equal
         to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        return (2 * (X[:, self.j_] - self.threshold_ >= 0) - 1) * self.sign_
 
     def _find_threshold(self, values: np.ndarray, labels: np.ndarray, sign: int) -> Tuple[float, float]:
         """
@@ -95,7 +100,13 @@ class DecisionStump(BaseEstimator):
         For every tested threshold, values strictly below threshold are predicted as `-sign` whereas values
         which equal to or above the threshold are predicted as `sign`
         """
-        raise NotImplementedError()
+        m = values.size
+        T = values.reshape((m, 1))
+        T = np.r_[T, [[values.max() + 1]]]
+        M = np.sum(((2 * (values - T >= 0) - 1) * labels + 1) / 2, axis=1)
+        M = M if sign > 0 else m - M
+        threshold_index = np.argmax(M)
+        return T[threshold_index, 0], 1 - M[threshold_index] / m
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -114,4 +125,5 @@ class DecisionStump(BaseEstimator):
         loss : float
             Performance under missclassification loss function
         """
-        raise NotImplementedError()
+        from ...metrics import misclassification_error
+        return misclassification_error(y, self._predict(X))
