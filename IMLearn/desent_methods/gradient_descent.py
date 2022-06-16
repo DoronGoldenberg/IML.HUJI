@@ -119,12 +119,12 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        avg = w_best = w_last = weights = f.weights()
+        avg = w_best = w_last = weights = f.weights
         val_best = f.compute_output()
         grad = f.compute_jacobian().T
         for t in range(self.max_iter_):
             eta = self.learning_rate_.lr_step(t=t)
-            weights = w_last - eta * grad
+            f.weights = weights = w_last - eta * grad
             val = f.compute_output()
             grad = f.compute_jacobian()
             delta = np.power(weights - w_last, 2).sum()

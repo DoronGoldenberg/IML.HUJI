@@ -73,25 +73,66 @@ def get_gd_state_recorder_callback() -> Tuple[Callable[[], None], List[np.ndarra
     weights: List[np.ndarray]
         Recorded parameters
     """
-    raise NotImplementedError()
+    values_record = list()
+    weights_record = list()
+
+    def callback(weights, val, **kwargs):
+        values_record.append(val)
+        weights_record.append(weights)
+
+    return callback, values_record, weights_record
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
-    raise NotImplementedError()
+    for module, name in [(L1, "L1"), (L2, "L2")]:
+        norms_plot = list()
+        for eta in etas:
+            lr = FixedLR(eta)
+            callback, vals, weights = get_gd_state_recorder_callback()
+            gd = GradientDescent(learning_rate=lr, tol=0, callback=callback)
+            f = module(init)
+            gd.fit(f, None, None)
+            best_loss = np.array(vals).min()
+            plot_descent_path(module, np.array([init, *weights]), 'module {}: eta = {}, best_loss = {}'.format(name, eta, best_loss)).show()
+            norms_plot.append(go.Scatter(x=np.arange(0, len(vals)), y=np.array(vals), mode='lines',
+                                         name=rf'$Module {name}: eta = {eta} (best_loss = {best_loss})$'))
+        go.Figure(norms_plot, layout=go.Layout(title=rf"$Convergence rate for module {name} with Fixed LR$",
+                                               xaxis_title="r$\\text{Iteration}$",
+                                               yaxis_title="r$\\text{Norm}$")).show()
 
 
 def compare_exponential_decay_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                     eta: float = .1,
                                     gammas: Tuple[float] = (.9, .95, .99, 1)):
     # Optimize the L1 objective using different decay-rate values of the exponentially decaying learning rate
-    raise NotImplementedError()
+    norms_plot = list()
+    for gamma in gammas:
+        lr = ExponentialLR(eta, gamma)
+        callback, vals, weights = get_gd_state_recorder_callback()
+        gd = GradientDescent(learning_rate=lr, tol=0, callback=callback)
+        f = L1(init)
+        gd.fit(f, None, None)
+        best_loss = np.array(vals).min()
+        norms_plot.append(go.Scatter(x=np.arange(0, len(vals)), y=np.array(vals), mode='lines',
+                                     name=rf'$Module L1: eta = {eta}, gamma = {gamma}, (best_loss = {best_loss})$'))
 
     # Plot algorithm's convergence for the different values of gamma
-    raise NotImplementedError()
+    go.Figure(norms_plot, layout=go.Layout(title=rf"$Convergence rate for module L1 with Exponential LR$",
+                                           xaxis_title="r$\\text{Iteration}$",
+                                           yaxis_title="r$\\text{Norm}$")).show()
 
     # Plot descent path for gamma=0.95
-    raise NotImplementedError()
+    gamma = 0.95
+    for module, name in [(L1, "L1"), (L2, "L2")]:
+        lr = ExponentialLR(eta, gamma)
+        callback, vals, weights = get_gd_state_recorder_callback()
+        gd = GradientDescent(learning_rate=lr, tol=0, callback=callback)
+        f = module(init)
+        gd.fit(f, None, None)
+        best_loss = np.array(vals).min()
+        plot_descent_path(module, np.array([init, *weights]),
+                          'module {} with Exponential LR: eta = {}, gamma = {}, best_loss = {}'.format(name, eta, gamma, best_loss)).show()
 
 
 def load_data(path: str = "../datasets/SAheart.data", train_portion: float = .8) -> \
@@ -142,4 +183,4 @@ if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
     compare_exponential_decay_rates()
-    fit_logistic_regression()
+    # fit_logistic_regression()
