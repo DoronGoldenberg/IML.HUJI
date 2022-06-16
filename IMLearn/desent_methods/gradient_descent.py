@@ -120,13 +120,13 @@ class GradientDescent:
 
         """
         avg = w_best = w_last = weights = f.weights
-        val_best = f.compute_output()
-        grad = f.compute_jacobian().T
+        val_best = f.compute_output(X=X, y=y)
+        grad = f.compute_jacobian(X=X, y=y).T
         for t in range(self.max_iter_):
             eta = self.learning_rate_.lr_step(t=t)
             f.weights = weights = w_last - eta * grad
-            val = f.compute_output()
-            grad = f.compute_jacobian()
+            val = f.compute_output(X=X, y=y)
+            grad = f.compute_jacobian(X=X, y=y)
             delta = np.power(weights - w_last, 2).sum()
             w_last = weights
             if val < val_best:

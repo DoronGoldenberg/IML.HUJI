@@ -70,6 +70,12 @@ class LogisticRegression(BaseEstimator):
             raise ValueError("Supported penalty types are: none, l1, l2")
 
         self.coefs_ = None
+        if self.penalty_ is "none":
+            self.module = LogisticModule()
+        elif self.penalty_ is "l1":
+            self.module = RegularizedModule(LogisticModule(), L1(), self.lam_, include_intercept=include_intercept)
+        else:
+            self.module = RegularizedModule(LogisticModule(), L2(), self.lam_, include_intercept=include_intercept)
 
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -88,7 +94,9 @@ class LogisticRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        X_ = np.column_stack((np.ones((X.shape[0], 1)), X)) if self.include_intercept_ else X
+        self.module.weights = np.random.normal(size=X_.shape[1])
+        self.coefs_ = self.solver_.fit(self.module, X_, y)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -104,7 +112,7 @@ class LogisticRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        return 2 * self.predict_proba(X) - 1
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -120,7 +128,8 @@ class LogisticRegression(BaseEstimator):
         probabilities: ndarray of shape (n_samples,)
             Probability of each sample being classified as `1` according to the fitted model
         """
-        raise NotImplementedError()
+        X_ = np.column_stack((np.ones((X.shape[0], 1)), X)) if self.include_intercept_ else X
+        return np.exp(X_ @ self.coefs_) / (1 + np.exp(X_ @ self.coefs_))
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -139,4 +148,5 @@ class LogisticRegression(BaseEstimator):
         loss : float
             Performance under misclassification error
         """
-        raise NotImplementedError()
+        from ...metrics import misclassification_error
+        return misclassification_error(y, self._predict(X))
