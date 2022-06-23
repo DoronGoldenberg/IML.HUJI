@@ -10,6 +10,8 @@ from IMLearn.utils import split_train_test
 
 import plotly.graph_objects as go
 
+from sklearn.metrics import roc_curve
+
 
 def plot_descent_path(module: Type[BaseModule],
                       descent_path: np.ndarray,
@@ -170,17 +172,47 @@ def load_data(path: str = "../datasets/SAheart.data", train_portion: float = .8)
 def fit_logistic_regression():
     # Load and split SA Heard Disease dataset
     X_train, y_train, X_test, y_test = load_data()
+    X_train, y_train, X_test, y_test = np.array(X_train), np.array(y_train), np.array(X_test), np.array(y_test)
 
     # Plotting convergence rate of logistic regression over SA heart disease data
-    raise NotImplementedError()
+    module = LogisticRegression().fit(X_train, y_train)
+    fpr, tpr, thresholds = roc_curve(y_test, module.predict_proba(X_test))
+    opt = thresholds[np.argmax(tpr - fpr)]
+    go.Figure(
+        data=[go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(color="black", dash='dash'),
+                         name="Random Class Assignment"),
+              go.Scatter(x=fpr, y=tpr, mode='markers+lines', text=thresholds, name="", showlegend=False, marker_size=5,
+                         hovertemplate="<b>Threshold:</b>%{text:.3f}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}")],
+        layout=go.Layout(title=rf"$\text{{ROC Curve Of Fitted Model - alfa*}}={opt:.6f} \text{{(Test error={module.loss(X_test, y_test):.6f})}}$",
+                         xaxis=dict(title=r"$\text{False Positive Rate (FPR)}$"),
+                         yaxis=dict(title=r"$\text{True Positive Rate (TPR)}$"))).show()
 
     # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify values
     # of regularization parameter
-    raise NotImplementedError()
+    K = 5
+    indexes = np.arange(X_train.shape[0])
+    np.random.shuffle(indexes)
+    validations = np.array([[i in v for i in indexes] for v in np.array_split(indexes, K)])
+    for p in ["l1", "l2"]:
+        opt_lam = 0.
+        opt_score = None
+        for lam in [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]:
+            score = 0.
+            for val in validations:
+                module = LogisticRegression(solver=GradientDescent(learning_rate=FixedLR(1e-4), max_iter=20000),
+                                            penalty=p, lam=lam).fit(X_train[indexes[~val]], y_train[indexes[~val]])
+                score += module.loss(X_train[indexes[val]], y_train[indexes[val]])
+            if opt_score is None or score < opt_score:
+                opt_score = score
+                opt_lam = lam
+
+        module = LogisticRegression(solver=GradientDescent(learning_rate=FixedLR(1e-4), max_iter=20000),
+                                    penalty=p, lam=opt_lam).fit(X_train, y_train)
+        print('Module {} - opt_lambda = {}, (test error = {})'.format(p, opt_lam, module.loss(X_test, y_test)))
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    compare_fixed_learning_rates()
-    compare_exponential_decay_rates()
-    # fit_logistic_regression()
+    # compare_fixed_learning_rates()
+    # compare_exponential_decay_rates()
+    fit_logistic_regression()

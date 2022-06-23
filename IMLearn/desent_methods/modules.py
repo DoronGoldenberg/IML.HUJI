@@ -150,7 +150,7 @@ class LogisticModule(BaseModule):
         output: ndarray of shape (n_features,)
             Derivative of function with respect to self.weights at point self.weights
         """
-        return X.T @ (np.exp(X @ self.weights) / (1 + np.exp(X @ self.weights)) - y) / X.shape[0]
+        return X.T @ (1. / (1 + np.exp(- X @ self.weights)) - y) / X.shape[0]
 
 
 class RegularizedModule(BaseModule):
@@ -223,7 +223,11 @@ class RegularizedModule(BaseModule):
         output: ndarray of shape (n_in,)
             Derivative with respect to self.weights at point self.weights
         """
-        return self.fidelity_module_.compute_jacobian(**kwargs) + self.lam_ * self.regularization_module_.compute_jacobian(**kwargs)
+        reg_jacobian = self.regularization_module_.compute_jacobian(**kwargs)
+        if self.include_intercept_:
+            reg_jacobian = np.insert(reg_jacobian, 0, 0)
+        # reg_jacobian = np.column_stack(([0], self.regularization_module_.compute_jacobian(**kwargs))) if self.include_intercept_ else self.regularization_module_.compute_jacobian(**kwargs)
+        return self.fidelity_module_.compute_jacobian(**kwargs) + self.lam_ * reg_jacobian
 
     @property
     def weights(self):
